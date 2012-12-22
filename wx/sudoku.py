@@ -30,14 +30,14 @@ def check_all(board):
 			return True
 	return False
 
-def gab_recurse(init, cur, i, j):
+def gsb_recurse(init, cur, i, j):
 	display(init)
 	display(cur)
 	raw_input()
 	if check_all(cur):
 		return
-	if i+j == 16:
-		return cur
+	#if i+j == 16:
+	#	return cur
 
 	j += 1
 	i += j / 9
@@ -45,37 +45,14 @@ def gab_recurse(init, cur, i, j):
 	for k in range(9):
 		temp = list(cur)
 		temp[i][j] = (init[i][j] + k) % 9 
-		result = gab_recurse(init, temp, i, j)
+		result = gsb_recurse(init, temp, i, j)
 		if result != None:
 			return result
 
-def get_solved_sudoku():
+def get_solved_board():
 	init = [[choice(range(9)) for i in range(9)] for j in range(9)]
 	cur = [['-' for i in range(9)] for j in range(9)]
-	return gab_recurse(init, cur, 0, -1)
-
-	result = [['-' for i in range(9)] for j in range(9)]
-	i,j = 0,0
-	while i < 9:
-		raw_input()
-		display(result)
-		result[i][j] = init[i][j]
-		print result
-		while check_all(result):
-			result[i][j] = result[i][j] + 1
-			if result[i][j] == 10:
-				result[i][j] = 1
-			if result[i][j] == init[i][j]:
-				result[i][j] = '-'
-				j -= 1
-				i += (j / 9)
-				j %= 9
-			else:
-				break
-		j += 1
-		i += (j / 9)
-		j %= 9
-	return result
+	return [[str(i+1) for i in range(9)] for j in gsb_recurse(init, cur, 0, -1)]
 
 def get_sudoku(difficulty):
 	init = get_solved_sudoku()
