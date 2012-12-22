@@ -16,7 +16,7 @@ def display(board):
 			print
 
 def check_for_doubles(test_list):
-	no_empty = [i for i in test_list if i != '-']
+	no_empty = [i for i in test_list if i != ' ']
 	if len(set(no_empty)) == len(no_empty):
 		return False
 	return True
@@ -54,7 +54,7 @@ def gsb_recurse(init, cur, i, j):
 
 def get_solved_board():
 	init = [[choice(range(9)) for i in range(9)] for j in range(9)]
-	cur = [['-' for i in range(9)] for j in range(9)]
+	cur = [[' ' for i in range(9)] for j in range(9)]
 	return [[str(i+1) for i in j] for j in gsb_recurse(init, cur, 0, -1)]
 
 def solve(sudoku, reverse=False):
@@ -65,39 +65,88 @@ def get_sudoku(difficulty):
 	take_out_ranges = {EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
 	got_sudoku = False
 	while not got_sudoku:
-		solution = get_solved_sudoku()
-		sudoku = [i[:] for i in solution]
-		take_out_no = choose(range(*take_out_ranges[difficulty]))
-		for i in range(take_out_no):
-			r,c = choose(range(9)), choose(range(9))
-			if sudoku[r][c] == '-':
-				i -= 1
-			else:
-				sudoku[r][c] = '-'
-		if solve(sudoku, False) == solve(sudoku, True):
+		solution = get_solved_board()
+		seeds = [i[:] for i in solution]
+		take_out_no = choice(range(*take_out_ranges[difficulty]))
+		i = 0
+		while i < take_out_no:
+			r,c = choice(range(9)), choice(range(9))
+			if seeds[r][c] != ' ':
+				seeds[r][c] = ' '
+				i += 1
+		if solve(seeds, False) == solve(seeds, True):
 			got_sudoku = True
-	return solution, sudoku
+	return solution, seeds
 
 class MainWindow(wx.Frame):
+	# Draw things
 	def __init__(s, parent, title):
 		wx.Frame.__init__(s, parent, title=title, size=(400,-1))
-		initial_tiles = [[choice(range(1,10) + ['-']) for i in range(9)] for j in range(9)]
 		s.CreateStatusBar()
 
-		# Draw everything
-		#s.board = new Board(initial_tiles)
-		
-		s.tiles = [[wx.Button(s, -1, str(initial_tiles[i][j]), size=(27,25)) for i in range(9)] for j in range(9)]
-		s.grid = wx.GridSizer(9,9)
-		for row in s.tiles:
-			for tile in row:
-				s.grid.Add(tile)
+		# Set up the top menu
+		new_menu = wx.Menu()
+		measy = new_menu.Append(wx.ID_ANY, '&Easy', 'Start an easy sudoku')
+		mmedium = new_menu.Append(wx.ID_ANY, '&Medium', 'Start a medium sudoku')
+		mhard = new_menu.Append(wx.ID_ANY, '&Hard', 'Start a hard sudoku')
+		mvhard = new_menu.Append(wx.ID_ANY, '&Very Hard', 'Start a very hard sudoku')
+		minsane = new_menu.Append(wx.ID_ANY, '&Insane', 'What are you... insane?')
+		menu_bar = wx.MenuBar()
+		menu_bar.Append(new_menu, '&New')
+		s.SetMenuBar(menu_bar)
 
+		# Make and align the grid cells
+		s.cells = [[wx.Button(s, -1, ' ', size=(27,25), name=str(i) + str(j)) for j in range(9)] for i in range(9)]
+		s.seeds = [[True for i in range(9)] for j in range(9)]
+		s.grid = wx.GridSizer(9,9)
+		for row in s.cells:
+			for cell in row:
+				s.grid.Add(cell)
 		s.SetSizer(s.grid)
+
+		# Set events
+		s.Bind(wx.EVT_MENU, s.click_easy, measy)
+		s.Bind(wx.EVT_MENU, s.click_medium, mmedium)
+		s.Bind(wx.EVT_MENU, s.click_hard, mhard)
+		s.Bind(wx.EVT_MENU, s.click_vhard, mvhard)
+		s.Bind(wx.EVT_MENU, s.click_insane, minsane)
+		for i in range(9):
+			for j in range(9):
+				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
+
 		s.Show()
 
-"""
+	def draw_sudoku(s, difficulty):
+		solution, seeds = get_sudoku(difficulty)
+		for i in range(9):
+			for j in range(9):
+				if seeds[i][j] == ' ':
+					s.seeds[i][j] = False
+				else:
+					s.cells[i][j].SetLabel(seeds[i][j])
+		display(seeds)
+
+	def click_cell(s, event):
+		cell = event.GetEventObject()
+		pos = [int(i) for i in list(button.GetName())
+		if not s.seeds[pos[0]][pos[1]]:
+			print cell.GetName()
+
+	def click_easy(s, event):
+		s.draw_sudoku(EASY)
+
+	def click_medium(s, event):
+		s.draw_sudoku(MEDIUM)
+
+	def click_hard(s, event):
+		s.draw_sudoku(HARD)
+
+	def click_vhard(s, event):
+		s.draw_sudoku(VERYHARD)
+
+	def click_insane(s, event):
+		s.draw_sudoku(INSANE)
+
 app = wx.App(False)
-MainWindow(None, 'Sudoku Generator')
+MainWindow(None, 'Sudoku Game')
 app.MainLoop()
-"""
