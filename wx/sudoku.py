@@ -1,6 +1,12 @@
 import wx
 from random import choice
 
+EASY = 0
+MEDIUM = 1
+HARD = 2
+VERYHARD = 3
+INSANE = 4
+
 def display(board):
 	for i in range(9):
 		for j in range(3):
@@ -19,7 +25,7 @@ def check_subsquare(board, number):
 	test_list = []
 	for i in range(3):
 		for j in range(3):
-			test_list.append(board[i + number/3][j + number%3])
+			test_list.append(board[i + (number/3)*3][j + (number%3)*3])
 	return check_for_doubles(test_list)
 
 def check_all(board):
@@ -31,31 +37,46 @@ def check_all(board):
 	return False
 
 def gsb_recurse(init, cur, i, j):
-	display(init)
-	display(cur)
-	raw_input()
 	if check_all(cur):
 		return
-	#if i+j == 16:
-	#	return cur
+	if i+j == 16:
+		return cur
 
 	j += 1
 	i += j / 9
 	j %= 9
 	for k in range(9):
-		temp = list(cur)
-		temp[i][j] = (init[i][j] + k) % 9 
-		result = gsb_recurse(init, temp, i, j)
+		cur = [l[:] for l in cur]
+		cur[i][j] = (init[i][j] + k) % 9 
+		result = gsb_recurse(init, cur, i, j)
 		if result != None:
 			return result
 
 def get_solved_board():
 	init = [[choice(range(9)) for i in range(9)] for j in range(9)]
 	cur = [['-' for i in range(9)] for j in range(9)]
-	return [[str(i+1) for i in range(9)] for j in gsb_recurse(init, cur, 0, -1)]
+	return [[str(i+1) for i in j] for j in gsb_recurse(init, cur, 0, -1)]
+
+def solve(sudoku, reverse=False):
+	return None
 
 def get_sudoku(difficulty):
-	init = get_solved_sudoku()
+	global EASY, MEDIUM, HARD, VERYHARD, INSANE
+	take_out_ranges = {EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
+	got_sudoku = False
+	while not got_sudoku:
+		solution = get_solved_sudoku()
+		sudoku = [i[:] for i in solution]
+		take_out_no = choose(range(*take_out_ranges[difficulty]))
+		for i in range(take_out_no):
+			r,c = choose(range(9)), choose(range(9))
+			if sudoku[r][c] == '-':
+				i -= 1
+			else:
+				sudoku[r][c] = '-'
+		if solve(sudoku, False) == solve(sudoku, True):
+			got_sudoku = True
+	return solution, sudoku
 
 class MainWindow(wx.Frame):
 	def __init__(s, parent, title):
