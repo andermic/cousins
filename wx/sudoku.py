@@ -87,7 +87,7 @@ def solve(cur, i, j, rev=False):
 
 def get_sudoku(difficulty):
 	global DEBUG, EASY, MEDIUM, HARD, VERYHARD, INSANE
-	take_out_ranges = {EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
+	take_out_ranges = {DEBUG:(1,2), EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
 	got_sudoku = False
 	
 	count = 0
@@ -124,19 +124,15 @@ class ClickDialog(wx.Dialog):
 		s.EndModal(int(event.GetEventObject().GetName()))
 
 	def keypress_button(s, event):
-		if event.GetKeyCode() == 13:
-			s.click_button(event)
-
-
-	def keypress_button(s, event):
 		button = event.GetEventObject()
 		pos = int(button.GetName()) - 1
 		key = event.GetKeyCode()
 		if key == 13:
 			s.click_button(event)
+		if key >= 49 and key <= 57:
+			s.EndModal(int(key - 48))
 		elif key == 315 or key == 317:
 			s.choices[(pos + key - 316)%9].SetFocus()
-
 
 class MainWindow(wx.Frame):
 	# Draw things
@@ -188,10 +184,10 @@ class MainWindow(wx.Frame):
 		#s.grid.Fit(s)
 		s.Show()
 
-	def check_for_solution():
+	def check_for_solution(s):
 		for i in range(9):
 			for j in range(9):
-				if s.solution[i][j] != s.cells[i][j].GetLabel()
+				if s.solution[i][j] != s.cells[i][j].GetLabel():
 					return
 
 		print 'solution'
@@ -246,7 +242,7 @@ class MainWindow(wx.Frame):
 			choose_no.Destroy()
 
 	def click_easy(s, event):
-		s.draw_sudoku(DEBUG)
+		s.draw_sudoku(EASY)
 
 	def click_medium(s, event):
 		s.draw_sudoku(MEDIUM)
