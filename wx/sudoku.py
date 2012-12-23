@@ -37,7 +37,9 @@ def check_all(board):
 	return False
 
 def gsb_recurse(init, cur, i, j):
-	if check_all(cur):
+	if check_for_doubles(cur[i]) or \
+         check_for_doubles([cur[k][j] for k in range(9)]) or \
+         check_subsquare(cur, i/3*3 + j/3):
 		return
 	if i+j == 16:
 		return cur
@@ -57,14 +59,41 @@ def get_solved_board():
 	cur = [[' ' for i in range(9)] for j in range(9)]
 	return [[str(i+1) for i in j] for j in gsb_recurse(init, cur, 0, -1)]
 
-def solve(sudoku, reverse=False):
-	return None
+def solve(cur, i, j, rev=False):
+	if check_for_doubles(cur[i]) or \
+         check_for_doubles([cur[k][j] for k in range(9)]) or \
+         check_subsquare(cur, i/3*3 + j/3):
+		return
+	if i+j == 16:
+		return cur
+
+	while True:
+		j += 1
+		i += j / 9
+		j %= 9
+		try:
+			if cur[i][j] == ' ':
+				break
+		except:
+			return cur 
+
+	for k in (range(1,10)[::-1] if rev else range(1,10)):
+		cur = [l[:] for l in cur]
+		cur[i][j] = str(k)
+		result = solve(cur, i, j, rev)
+		if result != None:
+			return result 
 
 def get_sudoku(difficulty):
 	global EASY, MEDIUM, HARD, VERYHARD, INSANE
 	take_out_ranges = {EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
 	got_sudoku = False
+	
+	count = 0
 	while not got_sudoku:
+		count += 1
+		print count
+
 		solution = get_solved_board()
 		seeds = [i[:] for i in solution]
 		take_out_no = choice(range(*take_out_ranges[difficulty]))
@@ -74,7 +103,7 @@ def get_sudoku(difficulty):
 			if seeds[r][c] != ' ':
 				seeds[r][c] = ' '
 				i += 1
-		if solve(seeds, False) == solve(seeds, True):
+		if solve(seeds, 0, -1, False) == solve(seeds, 0, -1, True):
 			got_sudoku = True
 	return solution, seeds
 
@@ -158,7 +187,6 @@ class MainWindow(wx.Frame):
 		cell = event.GetEventObject()
 		pos = [int(i) for i in list(cell.GetName())]
 		key = event.GetKeyCode()
-		print key
 		if key >= 49 and key <= 57 and (not s.seeds[pos[0]][pos[1]]):
 			cell.SetLabel(str(key - 48))
 		elif key >= 314 and key <= 317:
@@ -170,9 +198,6 @@ class MainWindow(wx.Frame):
 		pos = [int(i) for i in list(cell.GetName())]
 		if not s.seeds[pos[0]][pos[1]]:
 			print cell.GetName()
-
-	def focus_cell(s, event):
-		print event.GetEventObject().GetName()
 
 	def click_easy(s, event):
 		s.draw_sudoku(EASY)
@@ -189,6 +214,8 @@ class MainWindow(wx.Frame):
 	def click_insane(s, event):
 		s.draw_sudoku(INSANE)
 
+'''
 app = wx.App(False)
 MainWindow(None, 'Sudoku Game')
 app.MainLoop()
+'''
