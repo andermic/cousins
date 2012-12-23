@@ -1,4 +1,8 @@
+#! /usr/bin/env python
+
 import wx
+import os
+import pickle
 from random import choice
 
 DEBUG = -1
@@ -7,6 +11,7 @@ MEDIUM = 1
 HARD = 2
 VERYHARD = 3
 INSANE = 4
+HS_FILE_NAME = 'best_times.txt'
 
 def display(board):
 	for i in range(9):
@@ -108,6 +113,28 @@ def get_sudoku(difficulty):
 			got_sudoku = True
 	return solution, seeds
 
+def encrypt_decrypt(str):
+	return ''.join([chr((ord(i) + 128)%256) for i in str])[::-1]
+
+def store_best_times(times):
+	times = pickle.dumps(times)
+	times = encrypt_decrypt(times)
+	open(HS_FILE_NAME, 'w').write(times)
+
+def get_best_times():
+	if HS_FILE_NAME not in os.listdir('.'):
+		result = {}
+		result['EASY'] = '59h59s'
+		result['MEDIUM'] = '59h59s'
+		result['HARD'] = '59h59s'
+		result['VHARD'] = '59h59s'
+		result['INSANE'] = '59h59s'
+		store_best_times(result)
+		return result
+
+	result = open(HS_FILE_NAME, 'r').read()
+	return pickle.loads(encrypt_decrypt(result))
+
 class ClickDialog(wx.Dialog):
 	def __init__(s, parent, id, title, p=(0,0)):
 		wx.Dialog.__init__(s, parent, id, title, size=(30,275), pos=p)
@@ -135,7 +162,6 @@ class ClickDialog(wx.Dialog):
 			s.choices[(pos + key - 316)%9].SetFocus()
 
 class MainWindow(wx.Frame):
-	# Draw things
 	def __init__(s, parent, title):
 		wx.Frame.__init__(s, parent, style=wx.DEFAULT_FRAME_STYLE^wx.RESIZE_BORDER, title=title, size=(300,275))
 		s.CreateStatusBar()
@@ -146,9 +172,15 @@ class MainWindow(wx.Frame):
 		mmedium = new_menu.Append(wx.ID_ANY, '&Medium', 'Start a medium sudoku')
 		mhard = new_menu.Append(wx.ID_ANY, '&Hard', 'Start a hard sudoku')
 		mvhard = new_menu.Append(wx.ID_ANY, '&Very Hard', 'Start a very hard sudoku')
-		minsane = new_menu.Append(wx.ID_ANY, '&Insane', 'What are you... insane?')
+		#minsane = new_menu.Append(wx.ID_ANY, '&Insane', 'What are you... insane?')
+		other_menu = wx.Menu()
+		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
+		other_menu.AppendSeparator()
+		sas_text = choice(['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows stronger'])
+		msas = other_menu.Append(wx.ID_ANY, '&Solve A Square', 'When you cheat, %s' % sas_text)
 		menu_bar = wx.MenuBar()
 		menu_bar.Append(new_menu, '&New')
+		menu_bar.Append(other_menu, '&Other')
 		s.SetMenuBar(menu_bar)
 
 		s.FONT_SIZE = 18
@@ -174,7 +206,9 @@ class MainWindow(wx.Frame):
 		s.Bind(wx.EVT_MENU, s.click_medium, mmedium)
 		s.Bind(wx.EVT_MENU, s.click_hard, mhard)
 		s.Bind(wx.EVT_MENU, s.click_vhard, mvhard)
-		s.Bind(wx.EVT_MENU, s.click_insane, minsane)
+		#s.Bind(wx.EVT_MENU, s.click_insane, minsane)
+		s.Bind(wx.EVT_MENU, s.click_bt, mbt)
+		s.Bind(wx.EVT_MENU, s.click_sas, msas)
 		for i in range(9):
 			for j in range(9):
 				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
@@ -183,6 +217,9 @@ class MainWindow(wx.Frame):
 
 		#s.grid.Fit(s)
 		s.Show()
+
+		s.best_times = get_best_times()
+		s.solution = None
 
 	def check_for_solution(s):
 		for i in range(9):
@@ -215,6 +252,8 @@ class MainWindow(wx.Frame):
 				else:
 					s.seeds[i][j] = True
 					cell.SetFont(s.fbold)
+		s.best_times = get_best_times()
+		s.save_best_time = True
 
 	def keypress_cell(s, event):
 		cell = event.GetEventObject()
@@ -255,6 +294,24 @@ class MainWindow(wx.Frame):
 
 	def click_insane(s, event):
 		s.draw_sudoku(INSANE)
+
+	def click_bt(s, event):
+		print 'click_bt'
+
+	def click_sas(s, event):
+		if s.solution == None:
+			return
+		unsolved = []
+		for i in range(9):
+			for j in range(9):
+				cell = s.cells[i][j]
+				if cell.GetLabel() == ' ':
+					unsolved.append(cell.GetName())
+		pos = [int(i) for i in list(choice(unsolved))]
+		cell = s.cells[pos[0]][pos[1]]
+		cell.SetLabel(s.solution[pos[0]][pos[1]])
+		cell.SetFocus()
+		s.check_for_solution()
 
 app = wx.App(False)
 MainWindow(None, 'Sudoku Game')
