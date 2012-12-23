@@ -81,7 +81,7 @@ def get_sudoku(difficulty):
 class MainWindow(wx.Frame):
 	# Draw things
 	def __init__(s, parent, title):
-		wx.Frame.__init__(s, parent, title=title, size=(400,-1))
+		wx.Frame.__init__(s, parent, style=wx.DEFAULT_FRAME_STYLE^wx.RESIZE_BORDER, title=title, size=(300,275))
 		s.CreateStatusBar()
 
 		# Set up the top menu
@@ -95,8 +95,17 @@ class MainWindow(wx.Frame):
 		menu_bar.Append(new_menu, '&New')
 		s.SetMenuBar(menu_bar)
 
+		s.FONT_SIZE = 18
+		s.fnormal = wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Comic Sans MS')
+		s.fbold = wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, True, u'Comic Sans MS') 
+
 		# Make and align the grid cells
-		s.cells = [[wx.Button(s, -1, ' ', size=(27,25), name=str(i) + str(j)) for j in range(9)] for i in range(9)]
+		s.cells = []
+		for i in range(9):
+			s.cells.append([])
+			for j in range(9):
+				s.cells[-1].append(wx.Button(s, -1, ' ', size=(27,25), name=str(i) + str(j)))
+				s.cells[i][j].SetFont(s.fnormal)
 		s.seeds = [[True for i in range(9)] for j in range(9)]
 		s.grid = wx.GridSizer(9,9)
 		for row in s.cells:
@@ -113,24 +122,57 @@ class MainWindow(wx.Frame):
 		for i in range(9):
 			for j in range(9):
 				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
+				s.cells[i][j].Bind(wx.EVT_SET_FOCUS, s.focus_cell)
+				s.cells[i][j].Bind(wx.EVT_KEY_DOWN, s.keypress_cell)
+		s.Bind(wx.EVT_PAINT, s.on_paint)
 
+		#s.grid.Fit(s)
 		s.Show()
+
+	def on_paint(s, event):
+		dc = wx.PaintDC(s)
+		dc.Clear()
+		dc.SetPen(wx.Pen(wx.BLACK, 5))
+		dc.DrawLine(0, 75, 290, 75)
+		dc.DrawLine(0, 153, 290, 153)
+
+		dc.SetPen(wx.Pen(wx.BLACK, 6))
+		dc.DrawLine(96, 0, 96, 227)
+		dc.DrawLine(195, 0, 195, 227)
 
 	def draw_sudoku(s, difficulty):
 		solution, seeds = get_sudoku(difficulty)
 		for i in range(9):
 			for j in range(9):
+				cell = s.cells[i][j]
+				cell.SetLabel(seeds[i][j])
 				if seeds[i][j] == ' ':
 					s.seeds[i][j] = False
+					cell.SetFont(s.fnormal)
 				else:
-					s.cells[i][j].SetLabel(seeds[i][j])
+					s.seeds[i][j] = True
+					cell.SetFont(s.fbold)
 		display(seeds)
+
+	def keypress_cell(s, event):
+		cell = event.GetEventObject()
+		pos = [int(i) for i in list(cell.GetName())]
+		key = event.GetKeyCode()
+		print key
+		if key >= 49 and key <= 57 and (not s.seeds[pos[0]][pos[1]]):
+			cell.SetLabel(str(key - 48))
+		elif key >= 314 and key <= 317:
+			dir = (0 if key%2==0 else key-316, 0 if key%2==1 else key-315)
+			s.cells[(pos[0]+dir[0])%9][(pos[1]+dir[1])%9].SetFocus()
 
 	def click_cell(s, event):
 		cell = event.GetEventObject()
-		pos = [int(i) for i in list(button.GetName())
+		pos = [int(i) for i in list(cell.GetName())]
 		if not s.seeds[pos[0]][pos[1]]:
 			print cell.GetName()
+
+	def focus_cell(s, event):
+		print event.GetEventObject().GetName()
 
 	def click_easy(s, event):
 		s.draw_sudoku(EASY)
