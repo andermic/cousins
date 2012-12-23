@@ -1,6 +1,7 @@
 import wx
 from random import choice
 
+DEBUG = -1
 EASY = 0
 MEDIUM = 1
 HARD = 2
@@ -151,7 +152,6 @@ class MainWindow(wx.Frame):
 		for i in range(9):
 			for j in range(9):
 				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
-				s.cells[i][j].Bind(wx.EVT_SET_FOCUS, s.focus_cell)
 				s.cells[i][j].Bind(wx.EVT_KEY_DOWN, s.keypress_cell)
 		s.Bind(wx.EVT_PAINT, s.on_paint)
 
@@ -197,7 +197,9 @@ class MainWindow(wx.Frame):
 		cell = event.GetEventObject()
 		pos = [int(i) for i in list(cell.GetName())]
 		if not s.seeds[pos[0]][pos[1]]:
-			print cell.GetName()
+			choose_no = wx.SingleChoiceDialog(s, 'message', 'caption', ['1','2','a','b'])#(s, '', 'Choose a number', wx.OK)
+			choose_no.ShowModal()
+			choose_no.Destroy()
 
 	def click_easy(s, event):
 		s.draw_sudoku(EASY)
@@ -214,8 +216,6 @@ class MainWindow(wx.Frame):
 	def click_insane(s, event):
 		s.draw_sudoku(INSANE)
 
-'''
 app = wx.App(False)
 MainWindow(None, 'Sudoku Game')
 app.MainLoop()
-'''
