@@ -3,6 +3,7 @@
 import wx
 import os
 import pickle
+import re
 from random import choice
 
 DEBUG = -1
@@ -124,11 +125,11 @@ def store_best_times(times):
 def get_best_times():
 	if HS_FILE_NAME not in os.listdir('.'):
 		result = {}
-		result['EASY'] = '59h59s'
-		result['MEDIUM'] = '59h59s'
-		result['HARD'] = '59h59s'
-		result['VHARD'] = '59h59s'
-		result['INSANE'] = '59h59s'
+		result['EASY'] = [99,59,59]
+		result['MEDIUM'] = [99,59,59]
+		result['HARD'] = [99,59,59]
+		result['VHARD'] = [99,59,59]
+		result['INSANE'] = [99,59,59]
 		store_best_times(result)
 		return result
 
@@ -164,7 +165,8 @@ class ClickDialog(wx.Dialog):
 class MainWindow(wx.Frame):
 	def __init__(s, parent, title):
 		wx.Frame.__init__(s, parent, style=wx.DEFAULT_FRAME_STYLE^wx.RESIZE_BORDER, title=title, size=(300,275))
-		s.CreateStatusBar()
+		s.status_bar = s.CreateStatusBar()
+		s.timer = wx.Timer(s)
 
 		# Set up the top menu
 		new_menu = wx.Menu()
@@ -174,6 +176,7 @@ class MainWindow(wx.Frame):
 		mvhard = new_menu.Append(wx.ID_ANY, '&Very Hard', 'Start a very hard sudoku')
 		#minsane = new_menu.Append(wx.ID_ANY, '&Insane', 'What are you... insane?')
 		other_menu = wx.Menu()
+		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer', 'Toggle timer visibility')
 		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
 		other_menu.AppendSeparator()
 		sas_text = choice(['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows stronger'])
@@ -207,6 +210,7 @@ class MainWindow(wx.Frame):
 		s.Bind(wx.EVT_MENU, s.click_hard, mhard)
 		s.Bind(wx.EVT_MENU, s.click_vhard, mvhard)
 		#s.Bind(wx.EVT_MENU, s.click_insane, minsane)
+		s.Bind(wx.EVT_MENU, s.click_st, s.mst)
 		s.Bind(wx.EVT_MENU, s.click_bt, mbt)
 		s.Bind(wx.EVT_MENU, s.click_sas, msas)
 		for i in range(9):
@@ -214,12 +218,26 @@ class MainWindow(wx.Frame):
 				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
 				s.cells[i][j].Bind(wx.EVT_KEY_DOWN, s.keypress_cell)
 		s.Bind(wx.EVT_PAINT, s.on_paint)
+		s.Bind(wx.EVT_TIMER, s.second_tick, s.timer)
 
-		#s.grid.Fit(s)
 		s.Show()
 
 		s.best_times = get_best_times()
 		s.solution = None
+		s.show_timer = False
+
+	def second_tick(s, event):
+		s.time[2] += 1
+		if s.time[2] == 60:
+			s.time[2] = 0
+			s.time[1] += 1
+			if s.time[1] == 60:
+				s.time[1] = 0
+				s.time[0] += 1
+		if s.show_timer:
+			sb = s.status_bar.GetStatusText()
+			if (len(sb) == 1 and ord(sb) == 0) or (re.match('\d+h\d\dm\d\ds$', sb) != None):
+				s.status_bar.SetStatusText('%dh%.2dm%.2ds' % tuple(s.time))
 
 	def check_for_solution(s):
 		for i in range(9):
@@ -254,6 +272,8 @@ class MainWindow(wx.Frame):
 					cell.SetFont(s.fbold)
 		s.best_times = get_best_times()
 		s.save_best_time = True
+		s.time = [0,0,0]
+		s.timer.Start(1000)
 
 	def keypress_cell(s, event):
 		cell = event.GetEventObject()
@@ -281,19 +301,33 @@ class MainWindow(wx.Frame):
 			choose_no.Destroy()
 
 	def click_easy(s, event):
+		s.diff = EASY
 		s.draw_sudoku(EASY)
 
 	def click_medium(s, event):
+		s.diff = MEDIUM
 		s.draw_sudoku(MEDIUM)
 
 	def click_hard(s, event):
+		s.diff = HARD
 		s.draw_sudoku(HARD)
 
 	def click_vhard(s, event):
+		s.diff = VHARD
 		s.draw_sudoku(VERYHARD)
 
 	def click_insane(s, event):
+		s.diff = INSANE
 		s.draw_sudoku(INSANE)
+
+	def click_st(s, event):
+		s.show_timer = not s.show_timer
+		if s.show_timer:
+			s.mst.SetItemLabel('Hide Timer')
+		else:
+			s.status_bar.SetStatusText(chr(0))
+			s.mst.SetItemLabel('Show Timer')
+		
 
 	def click_bt(s, event):
 		print 'click_bt'
