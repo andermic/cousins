@@ -138,20 +138,21 @@ def get_best_times():
 
 class WinDialog(wx.Dialog):
 	def __init__(s, parent, id, title, lines):
-		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(250,250))
+		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(300,225))
 		sizer = s.CreateTextSizer('')
 		ok_button = wx.Button(s, wx.ID_OK, label='OK', style = wx.OK)
-		you_win = wx.StaticText(s, wx.ID_ANY, 'You win!', style=wx.ALIGN_CENTER^wx.ALL)
-		you_win.SetFont(wx.Font(20, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, u'Comic Sans MS'))
-		your_time = wx.StaticText(s, wx.ID_ANY, lines[0], style=wx.ALIGN_CENTER^wx.ALL)
+		you_win = wx.StaticText(s, wx.ID_ANY, 'You win!', style=wx.ALIGN_CENTER)
+		you_win.SetFont(wx.Font(35, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, u'Comic Sans MS'))
+		your_time = wx.StaticText(s, wx.ID_ANY, lines[0], style=wx.ALIGN_CENTER)
 		fnormal = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Comic Sans MS')
 		your_time.SetFont(fnormal)
 		prev_time = wx.StaticText(s, wx.ID_ANY, lines[1])
 		prev_time.SetFont(fnormal)
 
-		sizer.Add(you_win)
-		sizer.Add(your_time)
-		sizer.Add(prev_time)
+		sizer.Add(you_win, 1, wx.ALIGN_CENTER)
+		sizer.Add(your_time, 1, wx.ALIGN_CENTER)
+		sizer.Add(prev_time, 1, wx.ALIGN_CENTER)
+		sizer.Add(ok_button, 1, wx.ALIGN_CENTER)
 	
 		ok_button.Bind(wx.EVT_BUTTON, s.click_button)
 		s.SetSizer(sizer)
@@ -161,7 +162,7 @@ class WinDialog(wx.Dialog):
 
 class BestTimesDialog(wx.Dialog):
 	def __init__(s, parent, id, title, lines):
-		wx.Dialog.__init__(s, parent, id, title, size=(200,150))
+		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(200,150))
 		sizer = s.CreateTextSizer('')
 		ok_button = wx.Button(s, wx.ID_OK, label='OK', style=wx.OK)
 		boxes = []
@@ -209,7 +210,7 @@ class ClickDialog(wx.Dialog):
 
 class MainWindow(wx.Frame):
 	def __init__(s, parent, title):
-		wx.Frame.__init__(s, parent, style=wx.DEFAULT_FRAME_STYLE^wx.RESIZE_BORDER, title=title, size=(300,275))
+		wx.Frame.__init__(s, parent, style=wx.DEFAULT_FRAME_STYLE^wx.RESIZE_BORDER^wx.MAXIMIZE_BOX, title=title, size=(300,275))
 		s.status_bar = s.CreateStatusBar()
 		s.timer = wx.Timer(s)
 
@@ -294,9 +295,8 @@ class MainWindow(wx.Frame):
 					return
 
 		lines = []	
-		lines.append('Your time was ' + s.time_to_str(s.time))
+		lines.append('Your time was %s.' % s.time_to_str(s.time))
 		s.timer.Stop()
-		s.difficulty = EASY
 		best = s.best_times[s.difficulty]
 		if not s.cheated and \
 		 (s.time[0]*10000 + s.time[1]*100 + s.time[2] < \
@@ -307,7 +307,7 @@ class MainWindow(wx.Frame):
 		else:
 			lines.append('Your best time for this difficulty was %s.' % s.time_to_str(best))
 
-		win_dlg = BestTimesDialog(s, wx.ID_ANY, ' Puzzle Completed', lines)
+		win_dlg = WinDialog(s, wx.ID_ANY, ' Puzzle Completed', lines)
 		win_dlg.ShowModal()
 		win_dlg.Destroy()
 
@@ -370,7 +370,7 @@ class MainWindow(wx.Frame):
 
 	def click_easy(s, event):
 		s.diff = EASY
-		s.draw_sudoku(DEBUG)
+		s.draw_sudoku(EASY)
 
 	def click_medium(s, event):
 		s.diff = MEDIUM
@@ -412,7 +412,7 @@ class MainWindow(wx.Frame):
 		best_text[3] += s.time_to_str(s.best_times[HARD])
 		best_text[4] += s.time_to_str(s.best_times[VHARD])
 		#best_text[5] += s.time_to_str(s.best_times[INSANE])
-		best_dlg = BestTimesDialog(s, wx.ID_ANY, 'Best Times', best_text)
+		best_dlg = BestTimesDialog(s, wx.ID_ANY, '  Best Times', best_text)
 		best_dlg.ShowModal()
 		best_dlg.Destroy()
 
