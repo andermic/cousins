@@ -136,6 +136,29 @@ def get_best_times():
 	result = open(HS_FILE_NAME, 'r').read()
 	return pickle.loads(encrypt_decrypt(result))
 
+class WinDialog(wx.Dialog):
+	def __init__(s, parent, id, title, lines):
+		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(250,250))
+		sizer = s.CreateTextSizer('')
+		ok_button = wx.Button(s, wx.ID_OK, label='OK', style = wx.OK)
+		you_win = wx.StaticText(s, wx.ID_ANY, 'You win!', style=wx.ALIGN_CENTER^wx.ALL)
+		you_win.SetFont(wx.Font(20, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, u'Comic Sans MS'))
+		your_time = wx.StaticText(s, wx.ID_ANY, lines[0], style=wx.ALIGN_CENTER^wx.ALL)
+		fnormal = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Comic Sans MS')
+		your_time.SetFont(fnormal)
+		prev_time = wx.StaticText(s, wx.ID_ANY, lines[1])
+		prev_time.SetFont(fnormal)
+
+		sizer.Add(you_win)
+		sizer.Add(your_time)
+		sizer.Add(prev_time)
+	
+		ok_button.Bind(wx.EVT_BUTTON, s.click_button)
+		s.SetSizer(sizer)
+
+	def click_button(s, event):
+		s.EndModal(-1)
+
 class BestTimesDialog(wx.Dialog):
 	def __init__(s, parent, id, title, lines):
 		wx.Dialog.__init__(s, parent, id, title, size=(200,150))
@@ -249,7 +272,7 @@ class MainWindow(wx.Frame):
 		s.show_timer = False
 
 	def time_to_str(s, time):
-		return '%dh%.2dm%.2ds' % tuple(time)
+		return '%.2dh%.2dm%.2ds' % tuple(time)
 
 	def second_tick(s, event):
 		s.time[2] += 1
@@ -273,18 +296,23 @@ class MainWindow(wx.Frame):
 		lines = []	
 		lines.append('Your time was ' + s.time_to_str(s.time))
 		s.timer.Stop()
-		best = re.split('[hms]', s.best_times[s.difficulty])[:3]
-		best = [int(i) for i in best]
+		s.difficulty = EASY
+		best = s.best_times[s.difficulty]
 		if not s.cheated and \
-		 (s.time[0]*10000 + s.time[1]*100 + s.time < \
+		 (s.time[0]*10000 + s.time[1]*100 + s.time[2] < \
 	          best[0]*10000 + best[1]*100 + best[2]):
-			lines.append('You beat the previously best time of %s!' % s.best_times[s.difficulty])
-			s.best_times[s.difficulty] = best_times
+			lines.append('You beat the previously best time of %s!' % s.time_to_str(best))
+			s.best_times[s.difficulty] = s.time
 			store_best_times(s.best_times)
 		else:
-			lines.append('Your best time for this difficulty was %s.' % s.best_times[s.difficulty])
-		for l in lines:
-			print l	
+			lines.append('Your best time for this difficulty was %s.' % s.time_to_str(best))
+
+		win_dlg = BestTimesDialog(s, wx.ID_ANY, ' Puzzle Completed', lines)
+		win_dlg.ShowModal()
+		win_dlg.Destroy()
+
+		s.seeds = [[True for i in range(9)] for j in range(9)]
+		s.solution = None
 
 	def on_paint(s, event):
 		dc = wx.PaintDC(s)
@@ -342,7 +370,7 @@ class MainWindow(wx.Frame):
 
 	def click_easy(s, event):
 		s.diff = EASY
-		s.draw_sudoku(s.diff)
+		s.draw_sudoku(DEBUG)
 
 	def click_medium(s, event):
 		s.diff = MEDIUM
