@@ -125,7 +125,7 @@ def store_best_times(times):
 def get_best_times():
 	if HS_FILE_NAME not in os.listdir('.'):
 		result = {}
-		result['EASY'] = [99,59,59]
+		result['EASY'] = [999,59,59]
 		result['MEDIUM'] = [99,59,59]
 		result['HARD'] = [99,59,59]
 		result['VHARD'] = [99,59,59]
@@ -179,8 +179,8 @@ class MainWindow(wx.Frame):
 		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer', 'Toggle timer visibility')
 		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
 		other_menu.AppendSeparator()
-		sas_text = choice(['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows stronger'])
-		msas = other_menu.Append(wx.ID_ANY, '&Solve A Square', 'When you cheat, %s' % sas_text)
+		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'Kenny dies', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist']
+		s.msas = other_menu.Append(wx.ID_ANY, '&Solve a Square', 'When you cheat, ' + choice(s.sas_text))
 		menu_bar = wx.MenuBar()
 		menu_bar.Append(new_menu, '&New')
 		menu_bar.Append(other_menu, '&Other')
@@ -212,7 +212,7 @@ class MainWindow(wx.Frame):
 		#s.Bind(wx.EVT_MENU, s.click_insane, minsane)
 		s.Bind(wx.EVT_MENU, s.click_st, s.mst)
 		s.Bind(wx.EVT_MENU, s.click_bt, mbt)
-		s.Bind(wx.EVT_MENU, s.click_sas, msas)
+		s.Bind(wx.EVT_MENU, s.click_sas, s.msas)
 		for i in range(9):
 			for j in range(9):
 				s.cells[i][j].Bind(wx.EVT_BUTTON, s.click_cell)
@@ -226,6 +226,9 @@ class MainWindow(wx.Frame):
 		s.solution = None
 		s.show_timer = False
 
+	def time_to_str(s, time):
+		return '%dh%.2dm%.2ds' % tuple(time)
+
 	def second_tick(s, event):
 		s.time[2] += 1
 		if s.time[2] == 60:
@@ -237,7 +240,7 @@ class MainWindow(wx.Frame):
 		if s.show_timer:
 			sb = s.status_bar.GetStatusText()
 			if (len(sb) == 1 and ord(sb) == 0) or (re.match('\d+h\d\dm\d\ds$', sb) != None):
-				s.status_bar.SetStatusText('%dh%.2dm%.2ds' % tuple(s.time))
+				s.status_bar.SetStatusText(time_to_str(s.time))
 
 	def check_for_solution(s):
 		for i in range(9):
@@ -271,7 +274,7 @@ class MainWindow(wx.Frame):
 					s.seeds[i][j] = True
 					cell.SetFont(s.fbold)
 		s.best_times = get_best_times()
-		s.save_best_time = True
+		s.cheated = False
 		s.time = [0,0,0]
 		s.timer.Start(1000)
 
@@ -302,23 +305,23 @@ class MainWindow(wx.Frame):
 
 	def click_easy(s, event):
 		s.diff = EASY
-		s.draw_sudoku(EASY)
+		s.draw_sudoku(s.diff)
 
 	def click_medium(s, event):
 		s.diff = MEDIUM
-		s.draw_sudoku(MEDIUM)
+		s.draw_sudoku(s.diff)
 
 	def click_hard(s, event):
 		s.diff = HARD
-		s.draw_sudoku(HARD)
+		s.draw_sudoku(s.diff)
 
 	def click_vhard(s, event):
-		s.diff = VHARD
-		s.draw_sudoku(VERYHARD)
+		s.diff = VERYHARD
+		s.draw_sudoku(s.diff)
 
 	def click_insane(s, event):
 		s.diff = INSANE
-		s.draw_sudoku(INSANE)
+		s.draw_sudoku(s.diff)
 
 	def click_st(s, event):
 		s.show_timer = not s.show_timer
@@ -328,9 +331,27 @@ class MainWindow(wx.Frame):
 			s.status_bar.SetStatusText(chr(0))
 			s.mst.SetItemLabel('Show Timer')
 		
-
 	def click_bt(s, event):
-		print 'click_bt'
+		best_text = []
+		best_text.append('Difficulty')
+		best_text.append('Easy')
+		best_text.append('Medium')
+		best_text.append('Hard')
+		best_text.append('Very Hard')
+		#best_text.append('Insane')
+		largest = max([len(line) for line in best_text])
+		best_text = [line + ' '*(largest-len(line) + 5) for line in best_text]
+		best_text[0] += 'Time'
+		best_text[1] += s.time_to_str(s.best_times['EASY'])
+		best_text[2] += s.time_to_str(s.best_times['MEDIUM'])
+		best_text[3] += s.time_to_str(s.best_times['HARD'])
+		best_text[4] += s.time_to_str(s.best_times['VHARD'])
+		#best_text[5] += s.time_to_str(s.best_times['INSANE'])
+		best_text = '\n'.join(best_text)
+		best_dlg = wx.MessageDialog(s, best_text, '', wx.OK)
+		best_dlg.SetFont(wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Courier'))
+		best_dlg.ShowModal()
+		best_dlg.Destroy()
 
 	def click_sas(s, event):
 		if s.solution == None:
@@ -345,6 +366,8 @@ class MainWindow(wx.Frame):
 		cell = s.cells[pos[0]][pos[1]]
 		cell.SetLabel(s.solution[pos[0]][pos[1]])
 		cell.SetFocus()
+		s.cheated = True
+		s.msas.SetHelp('When you cheat, ' + choice(s.sas_text))
 		s.check_for_solution()
 
 app = wx.App(False)
