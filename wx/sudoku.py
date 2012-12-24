@@ -10,7 +10,7 @@ DEBUG = -1
 EASY = 0
 MEDIUM = 1
 HARD = 2
-VERYHARD = 3
+VHARD = 3
 INSANE = 4
 HS_FILE_NAME = 'best_times.txt'
 
@@ -92,8 +92,8 @@ def solve(cur, i, j, rev=False):
 			return result 
 
 def get_sudoku(difficulty):
-	global DEBUG, EASY, MEDIUM, HARD, VERYHARD, INSANE
-	take_out_ranges = {DEBUG:(1,2), EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VERYHARD:(45,55), INSANE:(55,60)}
+	global DEBUG, EASY, MEDIUM, HARD, VHARD, INSANE
+	take_out_ranges = {DEBUG:(1,2), EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VHARD:(45,55), INSANE:(55,60)}
 	got_sudoku = False
 	
 	count = 0
@@ -125,16 +125,38 @@ def store_best_times(times):
 def get_best_times():
 	if HS_FILE_NAME not in os.listdir('.'):
 		result = {}
-		result['EASY'] = [999,59,59]
-		result['MEDIUM'] = [99,59,59]
-		result['HARD'] = [99,59,59]
-		result['VHARD'] = [99,59,59]
-		result['INSANE'] = [99,59,59]
+		result[EASY] = [99,59,59]
+		result[MEDIUM] = [99,59,59]
+		result[HARD] = [99,59,59]
+		result[VHARD] = [99,59,59]
+		result[INSANE] = [99,59,59]
 		store_best_times(result)
 		return result
 
 	result = open(HS_FILE_NAME, 'r').read()
 	return pickle.loads(encrypt_decrypt(result))
+
+class BestTimesDialog(wx.Dialog):
+	def __init__(s, parent, id, title, lines):
+		wx.Dialog.__init__(s, parent, id, title, size=(200,150))
+		sizer = s.CreateTextSizer('')
+		ok_button = wx.Button(s, wx.ID_OK, label='OK', style=wx.OK)
+		boxes = []
+		for l in lines:
+			boxes.append(wx.StaticText(s, wx.ID_ANY, l))
+			boxes[-1].SetFont(wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Courier'))
+			sizer.Add(boxes[-1])
+		boxes[0].SetFont(wx.Font(12,wx.DEFAULT, wx.NORMAL, wx.BOLD, False, u'Courier'))
+		text = '\n'.join(lines) + '\n'
+
+		sizer.Add(wx.StaticText(s, wx.ID_ANY, ''))
+		sizer.Add(ok_button, 1, wx.ALIGN_CENTER|wx.ALL)
+	
+		ok_button.Bind(wx.EVT_BUTTON, s.click_button)
+		s.SetSizer(sizer)
+
+	def click_button(s, event):
+		s.EndModal(-1)
 
 class ClickDialog(wx.Dialog):
 	def __init__(s, parent, id, title, p=(0,0)):
@@ -188,7 +210,7 @@ class MainWindow(wx.Frame):
 
 		s.FONT_SIZE = 18
 		s.fnormal = wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Comic Sans MS')
-		s.fbold = wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, True, u'Comic Sans MS') 
+		s.funder = wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, True, u'Comic Sans MS') 
 
 		# Make and align the grid cells
 		s.cells = []
@@ -240,7 +262,7 @@ class MainWindow(wx.Frame):
 		if s.show_timer:
 			sb = s.status_bar.GetStatusText()
 			if (len(sb) == 1 and ord(sb) == 0) or (re.match('\d+h\d\dm\d\ds$', sb) != None):
-				s.status_bar.SetStatusText(time_to_str(s.time))
+				s.status_bar.SetStatusText(s.time_to_str(s.time))
 
 	def check_for_solution(s):
 		for i in range(9):
@@ -248,7 +270,21 @@ class MainWindow(wx.Frame):
 				if s.solution[i][j] != s.cells[i][j].GetLabel():
 					return
 
-		print 'solution'
+		lines = []	
+		lines.append('Your time was ' + s.time_to_str(s.time))
+		s.timer.Stop()
+		best = re.split('[hms]', s.best_times[s.difficulty])[:3]
+		best = [int(i) for i in best]
+		if not s.cheated and \
+		 (s.time[0]*10000 + s.time[1]*100 + s.time < \
+	          best[0]*10000 + best[1]*100 + best[2]):
+			lines.append('You beat the previously best time of %s!' % s.best_times[s.difficulty])
+			s.best_times[s.difficulty] = best_times
+			store_best_times(s.best_times)
+		else:
+			lines.append('Your best time for this difficulty was %s.' % s.best_times[s.difficulty])
+		for l in lines:
+			print l	
 
 	def on_paint(s, event):
 		dc = wx.PaintDC(s)
@@ -272,7 +308,8 @@ class MainWindow(wx.Frame):
 					cell.SetFont(s.fnormal)
 				else:
 					s.seeds[i][j] = True
-					cell.SetFont(s.fbold)
+					cell.SetFont(s.funder)
+		s.difficulty = difficulty
 		s.best_times = get_best_times()
 		s.cheated = False
 		s.time = [0,0,0]
@@ -316,7 +353,7 @@ class MainWindow(wx.Frame):
 		s.draw_sudoku(s.diff)
 
 	def click_vhard(s, event):
-		s.diff = VERYHARD
+		s.diff = VHARD
 		s.draw_sudoku(s.diff)
 
 	def click_insane(s, event):
@@ -333,23 +370,21 @@ class MainWindow(wx.Frame):
 		
 	def click_bt(s, event):
 		best_text = []
-		best_text.append('Difficulty')
-		best_text.append('Easy')
-		best_text.append('Medium')
-		best_text.append('Hard')
-		best_text.append('Very Hard')
+		best_text.append('  Difficulty')
+		best_text.append('  Easy')
+		best_text.append('  Medium')
+		best_text.append('  Hard')
+		best_text.append('  Very Hard')
 		#best_text.append('Insane')
 		largest = max([len(line) for line in best_text])
 		best_text = [line + ' '*(largest-len(line) + 5) for line in best_text]
 		best_text[0] += 'Time'
-		best_text[1] += s.time_to_str(s.best_times['EASY'])
-		best_text[2] += s.time_to_str(s.best_times['MEDIUM'])
-		best_text[3] += s.time_to_str(s.best_times['HARD'])
-		best_text[4] += s.time_to_str(s.best_times['VHARD'])
-		#best_text[5] += s.time_to_str(s.best_times['INSANE'])
-		best_text = '\n'.join(best_text)
-		best_dlg = wx.MessageDialog(s, best_text, '', wx.OK)
-		best_dlg.SetFont(wx.Font(s.FONT_SIZE, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, u'Courier'))
+		best_text[1] += s.time_to_str(s.best_times[EASY])
+		best_text[2] += s.time_to_str(s.best_times[MEDIUM])
+		best_text[3] += s.time_to_str(s.best_times[HARD])
+		best_text[4] += s.time_to_str(s.best_times[VHARD])
+		#best_text[5] += s.time_to_str(s.best_times[INSANE])
+		best_dlg = BestTimesDialog(s, wx.ID_ANY, 'Best Times', best_text)
 		best_dlg.ShowModal()
 		best_dlg.Destroy()
 
