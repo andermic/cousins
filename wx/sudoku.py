@@ -184,14 +184,15 @@ class BestTimesDialog(wx.Dialog):
 
 class ClickDialog(wx.Dialog):
 	def __init__(s, parent, id, title, p=(0,0)):
-		wx.Dialog.__init__(s, parent, id, title, size=(30,275), pos=p)
+		wx.Dialog.__init__(s, parent, id, title, size=(30,300), pos=p)
 		sizer = s.CreateTextSizer('')
 		s.choices = []
-		for i in range(1,10):
+		for i in range(10):
 			s.choices.append(wx.Button(s, -1, str(i), size=(27,25), name=str(i)))
 			sizer.Add(s.choices[-1])
 			s.choices[-1].Bind(wx.EVT_BUTTON, s.click_button)
 			s.choices[-1].Bind(wx.EVT_KEY_DOWN, s.keypress_button)
+		s.choices[0].SetLabel(' ')
 		s.SetSizer(sizer)
 
 	def click_button(s, event):
@@ -203,8 +204,11 @@ class ClickDialog(wx.Dialog):
 		key = event.GetKeyCode()
 		if key == 13:
 			s.click_button(event)
-		if key >= 49 and key <= 57:
-			s.EndModal(int(key - 48))
+		#TODO: Backspace key, delete key, spacebar
+		#elif key == :
+		#	s.EndModal(0)
+		elif key >= 48 and key <= 57:
+			s.EndModal(key - 48)
 		elif key == 315 or key == 317:
 			s.choices[(pos + key - 316)%9].SetFocus()
 
@@ -225,7 +229,7 @@ class MainWindow(wx.Frame):
 		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer', 'Toggle timer visibility')
 		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
 		other_menu.AppendSeparator()
-		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'Kenny dies', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist']
+		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist']
 		s.msas = other_menu.Append(wx.ID_ANY, '&Solve a Square', 'When you cheat, ' + choice(s.sas_text))
 		menu_bar = wx.MenuBar()
 		menu_bar.Append(new_menu, '&New')
@@ -349,6 +353,9 @@ class MainWindow(wx.Frame):
 		key = event.GetKeyCode()
 		if key == 13:
 			s.click_cell(event)
+		#TODO: backspace key, delete key, spacebar
+		elif key == 48:
+			cell.SetLabel(' ')
 		elif key >= 49 and key <= 57 and (not s.seeds[pos[0]][pos[1]]):
 			cell.SetLabel(str(key - 48))
 			s.check_for_solution()
@@ -363,8 +370,12 @@ class MainWindow(wx.Frame):
 			pos = cell.GetPosition()
 			choose_no = ClickDialog(s, -1, '', (pos[0], pos[1] + 50))
 			choose_no.ShowModal()
-			if choose_no.GetReturnCode() / 10 == 0:
-				cell.SetLabel(str(choose_no.GetReturnCode()))
+			code = choose_no.GetReturnCode()
+			if code / 10 == 0:
+				if code == 0:
+					cell.SetLabel(' ')
+				else:
+					cell.SetLabel(str(code))
 				s.check_for_solution()
 			choose_no.Destroy()
 
@@ -403,7 +414,7 @@ class MainWindow(wx.Frame):
 		best_text.append('  Medium')
 		best_text.append('  Hard')
 		best_text.append('  Very Hard')
-		#best_text.append('Insane')
+		#best_text.append('  Insane')
 		largest = max([len(line) for line in best_text])
 		best_text = [line + ' '*(largest-len(line) + 5) for line in best_text]
 		best_text[0] += 'Time'
@@ -428,6 +439,8 @@ class MainWindow(wx.Frame):
 		pos = [int(i) for i in list(choice(unsolved))]
 		cell = s.cells[pos[0]][pos[1]]
 		cell.SetLabel(s.solution[pos[0]][pos[1]])
+		s.seeds[pos[0]][pos[1]] = True
+		cell.SetFont(s.funder)
 		cell.SetFocus()
 		s.cheated = True
 		s.msas.SetHelp('When you cheat, ' + choice(s.sas_text))
