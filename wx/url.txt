@@ -1,1 +1,0 @@
-http://wiki.wxpython.org/Getting%20Started
