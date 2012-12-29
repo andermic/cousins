@@ -5,30 +5,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDisplayName</key>
-	<string>sudoku</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>****</string>
-				<string>fold</string>
-				<string>disk</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-	</array>
+	<string>Sudoku</string>
 	<key>CFBundleExecutable</key>
-	<string>sudoku</string>
+	<string>Sudoku</string>
 	<key>CFBundleIconFile</key>
 	<string>PythonApplet.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.pythonmac.unspecified.sudoku</string>
+	<string>org.pythonmac.unspecified.Sudoku</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>sudoku</string>
+	<string>Sudoku</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -56,7 +43,7 @@
 		<key>alias</key>
 		<false/>
 		<key>argv_emulation</key>
-		<true/>
+		<false/>
 		<key>no_chdir</key>
 		<false/>
 		<key>optimize</key>
