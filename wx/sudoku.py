@@ -200,17 +200,16 @@ class ClickDialog(wx.Dialog):
 
 	def keypress_button(s, event):
 		button = event.GetEventObject()
-		pos = int(button.GetName()) - 1
+		pos = int(button.GetName())
 		key = event.GetKeyCode()
-		if key == 13:
+		if key == wx.WXK_RETURN:
 			s.click_button(event)
-		#TODO: Backspace key, delete key, spacebar
-		#elif key == :
-		#	s.EndModal(0)
+		elif key == wx.WXK_BACK or key == wx.WXK_DELETE:
+			s.EndModal(0)
 		elif key >= 48 and key <= 57:
 			s.EndModal(key - 48)
 		elif key == 315 or key == 317:
-			s.choices[(pos + key - 316)%9].SetFocus()
+			s.choices[(pos + key - 316)%10].SetFocus()
 
 class MainWindow(wx.Frame):
 	def __init__(s, parent, title):
@@ -229,7 +228,7 @@ class MainWindow(wx.Frame):
 		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer', 'Toggle timer visibility')
 		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
 		other_menu.AppendSeparator()
-		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist']
+		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist', 'Iran gets a nuclear weapon', 'the next sudoku is unsolvable']
 		s.msas = other_menu.Append(wx.ID_ANY, '&Solve a Square', 'When you cheat, ' + choice(s.sas_text))
 		menu_bar = wx.MenuBar()
 		menu_bar.Append(new_menu, '&New')
@@ -353,8 +352,7 @@ class MainWindow(wx.Frame):
 		key = event.GetKeyCode()
 		if key == 13:
 			s.click_cell(event)
-		#TODO: backspace key, delete key, spacebar
-		elif key == 48:
+		elif key in [48, wx.WXK_BACK, wx.WXK_DELETE] and (not s.seeds[pos[0]][pos[1]]):
 			cell.SetLabel(' ')
 		elif key >= 49 and key <= 57 and (not s.seeds[pos[0]][pos[1]]):
 			cell.SetLabel(str(key - 48))
