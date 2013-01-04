@@ -17,7 +17,7 @@ HS_FILE_NAME = 'best_times.txt'
 def display(board):
 	for i in range(9):
 		for j in range(3):
-			print ''.join([str(k) for k in board[i][j*3:j*3+3]]),
+			print ''.join([str(k if k != ' ' else '-') for k in board[i][j*3:j*3+3]]),
 		print
 		if i % 3 == 2:
 			print
@@ -138,7 +138,7 @@ def get_best_times():
 
 class WinDialog(wx.Dialog):
 	def __init__(s, parent, id, title, lines):
-		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(300,225))
+		wx.Dialog.__init__(s, parent, id, title, pos=(50,50), size=(350,225))
 		sizer = s.CreateTextSizer('')
 		ok_button = wx.Button(s, wx.ID_OK, label='OK', style = wx.OK)
 		you_win = wx.StaticText(s, wx.ID_ANY, 'You win!', style=wx.ALIGN_CENTER)
@@ -155,10 +155,16 @@ class WinDialog(wx.Dialog):
 		sizer.Add(ok_button, 1, wx.ALIGN_CENTER)
 	
 		ok_button.Bind(wx.EVT_BUTTON, s.click_button)
+		ok_button.Bind(wx.EVT_KEY_DOWN, s.keypress_button)
 		s.SetSizer(sizer)
 
 	def click_button(s, event):
 		s.EndModal(-1)
+
+	def keypress_button(s, event):
+		key = event.GetKeyCode()
+		if key == wx.WXK_RETURN:
+			s.click_button(event)
 
 class BestTimesDialog(wx.Dialog):
 	def __init__(s, parent, id, title, lines):
@@ -177,10 +183,16 @@ class BestTimesDialog(wx.Dialog):
 		sizer.Add(ok_button, 1, wx.ALIGN_CENTER|wx.ALL)
 	
 		ok_button.Bind(wx.EVT_BUTTON, s.click_button)
+		ok_button.Bind(wx.EVT_KEY_DOWN, s.keypress_button)
 		s.SetSizer(sizer)
 
 	def click_button(s, event):
 		s.EndModal(-1)
+
+	def keypress_button(s, event):
+		key = event.GetKeyCode()
+		if key == wx.WXK_RETURN:
+			s.click_button(event)
 
 class ClickDialog(wx.Dialog):
 	def __init__(s, parent, id, title, p=(0,0)):
@@ -219,17 +231,17 @@ class MainWindow(wx.Frame):
 
 		# Set up the top menu
 		new_menu = wx.Menu()
-		measy = new_menu.Append(wx.ID_ANY, '&Easy', 'Start an easy sudoku')
-		mmedium = new_menu.Append(wx.ID_ANY, '&Medium', 'Start a medium sudoku')
-		mhard = new_menu.Append(wx.ID_ANY, '&Hard', 'Start a hard sudoku')
-		mvhard = new_menu.Append(wx.ID_ANY, '&Very Hard', 'Start a very hard sudoku')
-		#minsane = new_menu.Append(wx.ID_ANY, '&Insane', 'What are you... insane?')
+		measy = new_menu.Append(wx.ID_ANY, '&Easy\tCtrl+E', 'Start an easy sudoku')
+		mmedium = new_menu.Append(wx.ID_ANY, '&Medium\tCtrl+D', 'Start a medium sudoku')
+		mhard = new_menu.Append(wx.ID_ANY, '&Hard\tCtrl+H', 'Start a hard sudoku')
+		mvhard = new_menu.Append(wx.ID_ANY, '&Very Hard\tCtrl+V', 'Start a very hard sudoku')
+		#minsane = new_menu.Append(wx.ID_ANY, '&Insane\tCtrl+I', 'What are you... insane?')
 		other_menu = wx.Menu()
-		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer', 'Toggle timer visibility')
-		mbt = other_menu.Append(wx.ID_ANY, '&Best Times', 'Display your best solving times for each difficulty level')
+		s.mst = other_menu.Append(wx.ID_ANY, '&Show Timer\tCtrl+T', 'Toggle timer visibility')
+		mbt = other_menu.Append(wx.ID_ANY, '&Best Times\tCtrl+B', 'Display your best solving times for each difficulty level')
 		other_menu.AppendSeparator()
 		s.sas_text = ['an angel loses its wings', 'a kitten gets sad', 'the terrorists win', 'Justin Bieber grows more powerful', 'doves cry', 'the bell tolls for thee', 'eternal love becomes ephemeral', 'the world ends in 2012', 'Nazis march through Paris', 'children get coal in their stockings', 'the Empire beats the Rebels', "Pandora's Box gets opened", 'you cheat yourself', 'the Westboro Baptists celebrate', 'Tinkerbell ceases to exist', 'Iran gets a nuclear weapon', 'the next sudoku is unsolvable']
-		s.msas = other_menu.Append(wx.ID_ANY, '&Solve a Square', 'When you cheat, ' + choice(s.sas_text))
+		s.msas = other_menu.Append(wx.ID_ANY, '&Solve a Square\tCtrl+S', 'When you cheat, ' + choice(s.sas_text))
 		menu_bar = wx.MenuBar()
 		menu_bar.Append(new_menu, '&New')
 		menu_bar.Append(other_menu, '&Other')
@@ -279,17 +291,20 @@ class MainWindow(wx.Frame):
 		return '%.2dh%.2dm%.2ds' % tuple(time)
 
 	def second_tick(s, event):
-		s.time[2] += 1
-		if s.time[2] == 60:
-			s.time[2] = 0
-			s.time[1] += 1
-			if s.time[1] == 60:
-				s.time[1] = 0
-				s.time[0] += 1
+		s.frames += 1
 		if s.show_timer:
 			sb = s.status_bar.GetStatusText()
-			if (len(sb) == 1 and ord(sb) == 0) or (re.match('\d+h\d\dm\d\ds$', sb) != None):
+			if len(sb) == 0 or (len(sb) == 1 and ord(sb) == 0) or (re.match('\d+h\d\dm\d\ds$', sb) != None):
 				s.status_bar.SetStatusText(s.time_to_str(s.time))
+		
+		if s.frames % 25 == 0:
+			s.time[2] += 1
+			if s.time[2] == 60:
+				s.time[2] = 0
+				s.time[1] += 1
+				if s.time[1] == 60:
+					s.time[1] = 0
+					s.time[0] += 1
 
 	def check_for_solution(s):
 		for i in range(9):
@@ -297,8 +312,8 @@ class MainWindow(wx.Frame):
 				if s.solution[i][j] != s.cells[i][j].GetLabel():
 					return
 
-		lines = []	
-		lines.append('Your time was %s.' % s.time_to_str(s.time))
+		lines = []
+		lines.append('Your time was %s%s.' % (s.time_to_str(s.time), ', cheater' if s.cheated else ''))
 		s.timer.Stop()
 		best = s.best_times[s.difficulty]
 		if not s.cheated and \
@@ -308,7 +323,7 @@ class MainWindow(wx.Frame):
 			s.best_times[s.difficulty] = s.time
 			store_best_times(s.best_times)
 		else:
-			lines.append('Your best time for this difficulty was %s.' % s.time_to_str(best))
+			lines.append('Your best %stime for this difficulty was %s.' % ('HONEST ' if s.cheated else '', s.time_to_str(best)))
 
 		win_dlg = WinDialog(s, wx.ID_ANY, ' Puzzle Completed', lines)
 		win_dlg.ShowModal()
@@ -344,7 +359,8 @@ class MainWindow(wx.Frame):
 		s.best_times = get_best_times()
 		s.cheated = False
 		s.time = [0,0,0]
-		s.timer.Start(1000)
+		s.frames = 0
+		s.timer.Start(40)
 
 	def keypress_cell(s, event):
 		cell = event.GetEventObject()
@@ -402,8 +418,8 @@ class MainWindow(wx.Frame):
 		if s.show_timer:
 			s.mst.SetItemLabel('Hide Timer')
 		else:
-			s.status_bar.SetStatusText(chr(0))
 			s.mst.SetItemLabel('Show Timer')
+			s.status_bar.SetStatusText('')
 		
 	def click_bt(s, event):
 		best_text = []
