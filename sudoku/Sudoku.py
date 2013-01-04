@@ -17,7 +17,7 @@ HS_FILE_NAME = 'best_times.txt'
 def display(board):
 	for i in range(9):
 		for j in range(3):
-			print ''.join([str(k) for k in board[i][j*3:j*3+3]]),
+			print ''.join([str(k if k != ' ' else '-') for k in board[i][j*3:j*3+3]]),
 		print
 		if i % 3 == 2:
 			print
@@ -217,7 +217,7 @@ class ClickDialog(wx.Dialog):
 		if key == wx.WXK_RETURN:
 			s.click_button(event)
 		elif key == wx.WXK_BACK or key == wx.WXK_DELETE:
-			s.EndModa(0)
+			s.EndModal(0)
 		elif key >= 48 and key <= 57:
 			s.EndModal(key - 48)
 		elif key == 315 or key == 317:
