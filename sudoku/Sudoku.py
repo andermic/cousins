@@ -1,17 +1,10 @@
 #! /usr/bin/env python
 
 import wx
-import os
-import pickle
 import re
 from random import choice
 
-EASY = 0
-MEDIUM = 1
-HARD = 2
-VHARD = 3
-INSANE = 4
-HS_FILE_NAME = 'best_times.txt'
+import engine
 
 OS = 'Windows 7'
 if OS == 'MAC OSX':
@@ -55,130 +48,8 @@ elif OS == 'Windows 7':
     WIN_DIALOG_XSIZE = 400
     WIN_DIALOG_YSIZE = 300
     BEST_TIMES_XSIZE = 275
-    BEST_TIMES_YSIZE = 150
+    BEST_TIMES_YSIZE = 200
 
-
-def display(board):
-    for i in range(9):
-        for j in range(3):
-            print ''.join([str(k if k != ' ' else '-') for k in board[i][j*3:j*3+3]]),
-        print
-        if i % 3 == 2:
-            print
-
-def check_for_doubles(test_list):
-    no_empty = [i for i in test_list if i != ' ']
-    if len(set(no_empty)) == len(no_empty):
-        return False
-    return True
-
-def check_subsquare(board, number):
-    test_list = []
-    for i in range(3):
-        for j in range(3):
-            test_list.append(board[i + (number/3)*3][j + (number%3)*3])
-    return check_for_doubles(test_list)
-
-def check_all(board):
-    for i in range(9):
-        if check_for_doubles(board[i]) or \
-         check_for_doubles([board[j][i] for j in range(9)]) or \
-         check_subsquare(board, i):
-            return True
-    return False
-
-def gsb_recurse(init, cur, i, j):
-    if check_for_doubles(cur[i]) or \
-     check_for_doubles([cur[k][j] for k in range(9)]) or \
-     check_subsquare(cur, i/3*3 + j/3):
-        return
-    if i+j == 16:
-        return cur
-
-    j += 1
-    i += j / 9
-    j %= 9
-    for k in range(9):
-        cur = [l[:] for l in cur]
-        cur[i][j] = (init[i][j] + k) % 9 
-        result = gsb_recurse(init, cur, i, j)
-        if result != None:
-            return result
-
-def get_solved_board():
-    init = [[choice(range(9)) for i in range(9)] for j in range(9)]
-    cur = [[' ' for i in range(9)] for j in range(9)]
-    return [[str(i+1) for i in j] for j in gsb_recurse(init, cur, 0, -1)]
-
-def solve(cur, i, j, rev=False):
-    if check_for_doubles(cur[i]) or \
-         check_for_doubles([cur[k][j] for k in range(9)]) or \
-         check_subsquare(cur, i/3*3 + j/3):
-        return
-    if i+j == 16:
-        return cur
-
-    while True:
-        j += 1
-        i += j / 9
-        j %= 9
-        try:
-            if cur[i][j] == ' ':
-                break
-        except:
-            return cur 
-
-    for k in (range(1,10)[::-1] if rev else range(1,10)):
-        cur = [l[:] for l in cur]
-        cur[i][j] = str(k)
-        result = solve(cur, i, j, rev)
-        if result != None:
-            return result 
-
-def get_sudoku(difficulty):
-    global DEBUG, EASY, MEDIUM, HARD, VHARD, INSANE
-    take_out_ranges = {EASY:(20,30), MEDIUM:(30,40), HARD:(40,45), VHARD:(45,55), INSANE:(55,60)}
-    got_sudoku = False
-    
-    count = 0
-    while not got_sudoku:
-        count += 1
-        print count
-
-        solution = get_solved_board()
-        seeds = [i[:] for i in solution]
-        take_out_no = choice(range(*take_out_ranges[difficulty]))
-        i = 0
-        while i < take_out_no:
-            r,c = choice(range(9)), choice(range(9))
-            if seeds[r][c] != ' ':
-                seeds[r][c] = ' '
-                i += 1
-        if solve(seeds, 0, -1, False) == solve(seeds, 0, -1, True):
-            got_sudoku = True
-    return solution, seeds
-
-def encrypt_decrypt(str):
-    return ''.join([chr((ord(i) + 128)%256) for i in str])[::-1]
-
-def store_best_times(times):
-    times = pickle.dumps(times)
-    times = encrypt_decrypt(times)
-    open(HS_FILE_NAME, 'w').write(times)
-
-def get_best_times():
-    if HS_FILE_NAME not in os.listdir('.'):
-        result = {}
-        result[EASY]   = [99,59,59]
-        result[MEDIUM] = [99,59,59]
-        result[HARD]   = [99,59,59]
-        result[VHARD]  = [99,59,59]
-        result[INSANE] = [99,59,59]
-        store_best_times(result)
-        return result
-
-    result = open(HS_FILE_NAME, 'r').read()
-    return pickle.loads(encrypt_decrypt(result))
 
 class WinDialog(wx.Dialog):
     def __init__(s, parent, id, title, lines):
@@ -334,7 +205,7 @@ class MainWindow(wx.Frame):
 
         s.Show()
 
-        s.best_times = get_best_times()
+        s.best_times = engine.get_best_times()
         s.solution = None
         s.show_timer = False
 
@@ -372,9 +243,9 @@ class MainWindow(wx.Frame):
          best[0]*10000 + best[1]*100 + best[2]):
             lines.append('You beat the previously best time of %s!' % s.time_to_str(best))
             s.best_times[s.difficulty] = s.time
-            store_best_times(s.best_times)
+            engine.set_best_times(s.best_times)
         else:
-            lines.append('Your best %stime for this difficulty was %s.' % ('HONEST ' if s.cheated else '', s.time_to_str(best)))
+            lines.append('Your best %stime for this difficulty is %s.' % ('HONEST ' if s.cheated else '', s.time_to_str(best)))
 
         win_dlg = WinDialog(s, wx.ID_ANY, ' Puzzle Completed', lines)
         win_dlg.ShowModal()
@@ -396,7 +267,7 @@ class MainWindow(wx.Frame):
         dc.DrawLine(VERTICAL_DIVIDER2_X, 0, VERTICAL_DIVIDER2_X, VERTICAL_DIVIDER_LENGTH)
 
     def draw_sudoku(s, difficulty):
-        s.solution, seeds = get_sudoku(difficulty)
+        s.solution, seeds = engine.Sudoku().get_puzzle(difficulty)
         
         for i in range(9):
             for j in range(9):
@@ -411,7 +282,7 @@ class MainWindow(wx.Frame):
         s.cells[0][0].SetFocus()
         
         s.difficulty = difficulty
-        s.best_times = get_best_times()
+        s.best_times = engine.get_best_times()
         s.cheated = False
         s.time = [0,0,0]
         s.frames = 0
@@ -455,23 +326,23 @@ class MainWindow(wx.Frame):
             choose_no.Destroy()
 
     def click_easy(s, event):
-        s.diff = EASY
+        s.diff = engine.SUDOKU_EASY
         s.draw_sudoku(s.diff)
 
     def click_medium(s, event):
-        s.diff = MEDIUM
+        s.diff = engine.SUDOKU_MEDIUM
         s.draw_sudoku(s.diff)
 
     def click_hard(s, event):
-        s.diff = HARD
+        s.diff = engine.SUDOKU_HARD
         s.draw_sudoku(s.diff)
 
     def click_vhard(s, event):
-        s.diff = VHARD
+        s.diff = engine.SUDOKU_VHARD
         s.draw_sudoku(s.diff)
 
     def click_insane(s, event):
-        s.diff = INSANE
+        s.diff = engine.SUDOKU_INSANE
         s.draw_sudoku(s.diff)
 
     def click_st(s, event):
@@ -493,11 +364,11 @@ class MainWindow(wx.Frame):
         largest = max([len(line) for line in best_text])
         best_text = [line + ' '*(largest-len(line) + 5) for line in best_text]
         best_text[0] += 'Time'
-        best_text[1] += s.time_to_str(s.best_times[EASY])
-        best_text[2] += s.time_to_str(s.best_times[MEDIUM])
-        best_text[3] += s.time_to_str(s.best_times[HARD])
-        best_text[4] += s.time_to_str(s.best_times[VHARD])
-        #best_text[5] += s.time_to_str(s.best_times[INSANE])
+        best_text[1] += s.time_to_str(s.best_times[engine.SUDOKU_EASY])
+        best_text[2] += s.time_to_str(s.best_times[engine.SUDOKU_MEDIUM])
+        best_text[3] += s.time_to_str(s.best_times[engine.SUDOKU_HARD])
+        best_text[4] += s.time_to_str(s.best_times[engine.SUDOKU_VHARD])
+        #best_text[5] += s.time_to_str(s.best_times[engine.SUDOKU_INSANE])
         best_dlg = BestTimesDialog(s, wx.ID_ANY, '  Best Times', best_text)
         best_dlg.ShowModal()
         best_dlg.Destroy()
@@ -521,6 +392,9 @@ class MainWindow(wx.Frame):
         s.msas.SetHelp('When you cheat, ' + choice(s.sas_text))
         s.check_for_solution()
 
-app = wx.App(False)
-MainWindow(None, 'Sudoku Game')
-app.MainLoop()
+        
+if __name__ == '__main__':
+    app = wx.App(False)
+    MainWindow(None, 'Sudoku Game')
+    app.MainLoop()
+    
