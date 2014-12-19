@@ -1,6 +1,6 @@
 import os
 import pickle
-from random import choice
+from random import choice, shuffle
 
 SUDOKU_DEBUG  = -1
 SUDOKU_EASY   = 0
@@ -36,10 +36,10 @@ UNI_DOUB_INTERS = u'\u256c'
 
 HS_FILE_NAME = 'best_times.txt'
 
-up = lambda n,i,j: (i-1,j) if i!=0 else None
-down = lambda n,i,j: (i+1,j) if i!=n else None
-left = lambda n,i,j: (i,j-1) if j!=0 else None
-right = lambda n,i,j: (i,j+1) if i!=n else None
+up = lambda x,n: (x[0]-1,x[1]) if x[0]!=0 else None
+down = lambda x,n: (x[0]+1,x[1]) if x[0]!=n else None
+left = lambda x,n: (x[0],x[1]-1) if x[1]!=0 else None
+right = lambda x,n: (x[0],x[1]+1) if x[1]!=n else None
 
 def check_for_duplicates(test_list):
     no_empty = [i for i in test_list if i != None]
@@ -187,15 +187,15 @@ class Kenken(Puzzle):
     def display(s, board):
         pass
     
-    def solve(s, init, cur, n, section_matrix, section_list, i, j):
+    def solve(s, init, cur, n, section_list, section_matrix, i, j):
         if check_for_duplicates(cur[i]) or \
-         check_for_duplicates([cur[k][j] for k in range(9)]):
+         check_for_duplicates([cur[k][j] for k in range(n)]):
             return
-        if i == n and j == n:
+        if i == n-1 and j == n-1:
             return cur
         
-        # TODO: Check section
-        cur_section = None
+        # TODO: If latest cell belongs to a section check section constraint
+        # Can backtrack on * and + as soon as current prod/sum goes over expected total
         
         j += 1
         i += j / n
@@ -203,26 +203,46 @@ class Kenken(Puzzle):
         
         for k in range(1, n + 1):
             cur = [l[:] for l in cur]
-            cur[i][j] = (init[i][j] + k) % n
-            result = s.solve(init, cur, n, i, j)
+            cur[i][j] = (init[i][j] + k) % n + 1
+            result = s.solve(init, cur, n, section_list, section_matrix, i, j)
             if result != None:
                 return result
     
-    # TODO: Implement
     def get_sections(s, cur_section_list, cur_section_matrix, n, section_sizes):
-        if len(section_sizes) == 0:
-            return cur_sections
+        unassigned = [(i,j) for i in range(n) for j in range(n) if cur_section_matrix[i][j] == None]
+        if len(unassigned) == 0:
+            return cur_section_list, cur_section_matrix
         
-        unassigned = [(i,j) for i in range(n) for j in range(n) if cur_section_matrix(i,j) != None]
-        cur_section_start = choice(unassigned)
+        cur_section_list = [i[:] for i in cur_section_list]
+        cur_section_matrix = [i[:] for i in cur_section_matrix]
+        
+        if len(cur_section_list) == 0 or (len(cur_section_list[-1]) == section_sizes[len(cur_section_list)-1]):
+            cur_section_list.append([])
+            cur_cell_candidates = [choice(unassigned)]          
+        else:
+            last_cell = cur_section_list[-1][-1]
+            cur_cell_candidates = [i(last_cell, n) for i in [up, down, left, right]]
+            cur_cell_candidates = [i for i in cur_cell_candidates if (i != None) and (i in unassigned)]
+            shuffle(cur_cell_candidates)
 
-        cur_section = [cur_section_start]
-        cur_section_size = section_sizes.pop()
-        while len(cur_section) < cur_section_size:
-        
-        return result
+        for cur_cell in cur_cell_candidates:
+            cur_section_list[-1].append(cur_cell)
+            cur_section_matrix[cur_cell[0]][cur_cell[1]] = len(cur_section_list) - 1
+            result = s.get_sections(cur_section_list, cur_section_matrix, n, section_sizes)
+            if result != None:
+                return result
+            cur_section_list[-1].pop()
+            cur_section_matrix[cur_cell[0]][cur_cell[1]] = None
     
     def get_solved_board(s, n):
+        init = [[choice(range(n)) for i in range(n)] for j in range(n)]
+        cur = [[None] * n for i in range(n)]        
+        init_section_list = []
+        init_section_matrix = [[None] * n for i in range(n)]
+        cells = s.solve(init, cur, n, init_section_list, init_section_matrix, 0, -1)
+        
+        # TODO: Put the logic in this block into get_sections (?),
+        #  or maybe change name of get_sections to get_section_locs.
         section_sizes = []
         while sum(section_sizes) != n**2:
             if sum(section_sizes) < n**2:
@@ -231,25 +251,25 @@ class Kenken(Puzzle):
                 section_sizes.pop()
         section_sizes.sort(reverse=True)
         
-        section_types = []
-        for i in range(len(section_sizes)):
-            if section_sizes[i] > 2:
-                possible_types = ['+','*']
-            if section_sizes[i] == 2:
-                possible_types = ['+','-','*','/']
-            if section_sizes[i] == 1:
-                possible_types = [' ']
-            section_types = choice(possible_types)
+        section_list, section_matrix = s.get_sections(init_section_list, init_section_matrix, n, section_sizes)
         
-        cur_section_matrix = [[None for i in range(n)] for j in range(n)]
-        sections = get_sections(s, [], cur_section_matrix, n, section_sizes)
-                
-        init = [[choice(range(n)) for i in range(n)] for j in range(n)]
-        cur = [[None] * n for i in range(n)]        
-        cells = s.solve(init, cur, n, section_matrix, section_list, 0, -1)
-
-        # TODO: Return result
-        return cells, section_list, section_matrix
+        section_labels = []
+        for cur_section in section_list:
+            cell_vals = sorted([cells[i[0]][i[1]] for i in cur_section], reverse=True)
+            
+            if len(cell_vals) > 2:
+                operator_candidates = ['+','*']
+            elif len(cell_vals) == 2:
+                operator_candidates = ['+','-','*']
+                if cell_vals[1] % cell_vals[0] == 0:
+                    operator_candidates.append('/')
+            elif len(cell_vals) == 1:
+                operator_candidates = ['']
+            
+            cur_operator = choice(operator_candidates)
+            section_labels.append(cur_operator + str(eval(cur_operator.join([str(i) for i in cell_vals]))))
+            
+        return cells, section_list, section_matrix, section_labels
 
     def get_puzzle(s, difficulty):
         pass
