@@ -27,10 +27,10 @@ UNI_DOUB_ELB_SE = u'\u2554'
 UNI_DOUB_ELB_SW = u'\u2557'
 UNI_DOUB_ELB_NE = u'\u255a'
 UNI_DOUB_ELB_NW = u'\u255d'
-UNI_DOUB_T_RGHT = u'\u255e'
-UNI_DOUB_T_LEFT = u'\u2561'
-UNI_DOUB_T_DOWN = u'\u2565'
-UNI_DOUB_T_UP   = u'\u2568'
+UNI_DOUB_T_RGHT = u'\u2560'
+UNI_DOUB_T_LEFT = u'\u2563'
+UNI_DOUB_T_DOWN = u'\u2566'
+UNI_DOUB_T_UP   = u'\u2569'
 UNI_SIDO_INTERS = u'\u256a'
 UNI_DOUB_INTERS = u'\u256c'
 
@@ -85,7 +85,7 @@ class Sudoku(Puzzle):
         return [[' ' if i == None else str(i+1) for i in j] for j in board]
     
     def display(s, board):
-        print UNI_DOUB_ELB_SE + u'\u2566'.join(3*[u'\u2564'.join(3*[UNI_DOUB_HORI])]) + u'\u2557'
+        print UNI_DOUB_ELB_SE + UNI_DOUB_T_DOWN.join(3*[u'\u2564'.join(3*[UNI_DOUB_HORI])]) + UNI_DOUB_ELB_SW
         for i in range(3):
             for j in range(3):
                 print UNI_DOUB_VERT \
@@ -185,7 +185,27 @@ class Sudoku(Puzzle):
 
 class Kenken(Puzzle):
     def display(s, board):
-        pass
+        cells, section_list, section_matrix, section_labels = board
+        n = len(cells)
+        
+        print UNI_DOUB_ELB_SE + UNI_DOUB_T_DOWN.join(n*[UNI_DOUB_HORI]) + UNI_DOUB_ELB_SW
+        for i in range(n):
+            separators = [UNI_SING_VERT if ((section_matrix[i][j]) == section_matrix[i][j+1]) else UNI_DOUB_VERT for j in range(n-1)]
+            print UNI_DOUB_VERT + ''.join([str(cells[i][j]) + separators[j] for j in range(n-1)]) + str(cells[i][n-1]) + UNI_DOUB_VERT
+            if i != n-1:
+                separators = [UNI_SING_HORI if (section_matrix[i][j] == section_matrix[i+1][j]) else UNI_DOUB_HORI for j in range(n)]
+                print UNI_DOUB_T_RGHT + UNI_DOUB_INTERS.join(separators) + UNI_DOUB_T_LEFT
+        print UNI_DOUB_ELB_NE + UNI_DOUB_T_UP.join(n*[UNI_DOUB_HORI]) + UNI_DOUB_ELB_NW
+        
+        print
+        print 'cells:'
+        print cells
+        print
+        print 'section_matrix:'
+        print section_matrix
+        print
+        print 'section_labels:'
+        print section_labels
     
     def solve(s, init, cur, n, section_list, section_matrix, i, j):
         if check_for_duplicates(cur[i]) or \
@@ -270,6 +290,7 @@ class Kenken(Puzzle):
             section_labels.append(cur_operator + str(eval(cur_operator.join([str(i) for i in cell_vals]))))
             
         return cells, section_list, section_matrix, section_labels
-
+    
+    #TODO: Implement. Ensure puzzle uniqueness.
     def get_puzzle(s, difficulty):
         pass
