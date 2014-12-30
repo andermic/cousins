@@ -51,15 +51,12 @@ def check_for_duplicates(test_list):
 
 # Generating a VHARD sudoku w/ seed=4 takes 8.7 seconds (w/o subsquare)
 def check_for_duplicates2(test_list, elem):
-    #print test_list, elem
     have_seen = False
     for t in test_list:
         if t == elem and elem != None:
             if have_seen == True:
-                #print True
                 return True
             have_seen = True
-    #print False
     return False
 
 # TODO: Try storing the current state of each row,col,subsquare relative to individual digits
@@ -109,7 +106,7 @@ class Sudoku(Puzzle):
         for i in range(3):
             for j in range(3):
                 print UNI_DOUB_VERT \
-                 + UNI_DOUB_VERT.join([UNI_SING_VERT.join([l for l in board[i*3+j][k*3:k*3+3]]) for k in range(3)]) \
+                 + UNI_DOUB_VERT.join([UNI_SING_VERT.join([(str(l) if l != None else ' ') for l in board[i*3+j][k*3:k*3+3]]) for k in range(3)]) \
                  + UNI_DOUB_VERT
                 if j != 2:
                     middle = UNI_SING_INTERS.join(3*[UNI_SING_HORI])
@@ -149,13 +146,13 @@ class Sudoku(Puzzle):
         i += j / 9
         j %= 9
         
-        for k in range(9 if is_fixed[i][j] else 1, 10):
-            # TODO: Expensive! Optimize.
-            cur = [l[:] for l in cur]
-            cur[i][j] = (init[i][j] + k) % 9 
+        for k in range((9 if is_fixed[i][j] else 1), 10):           
+            cur[i][j] = (init[i][j] + k) % 9
             result = s.solve(init, cur, is_fixed, i, j)
             if result != None:
                 return result
+        if not is_fixed[i][j]:
+            cur[i][j] = None
     
     def get_solved_board(s):
         random_ = Random(s.seed)
@@ -203,7 +200,8 @@ class Sudoku(Puzzle):
                     is_fixed[r][c] = False
                     i += 1
             
-            got_sudoku = (solution == s.solve(solution, seeds, is_fixed, 0, -1))
+            cur = [i[:] for i in seeds]
+            got_sudoku = (solution == s.solve(solution, cur, is_fixed, 0, -1))
         
         if s.seed != None:
             print '%.3f' % (time.time() - start_time)
@@ -365,3 +363,4 @@ class Kenken(Puzzle):
         solution = s.cells_to_strings(solution)
         seeds = s.cells_to_strings(seeds)
         return solution, seeds
+    
