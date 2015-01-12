@@ -117,41 +117,41 @@ class Sudoku(Puzzle):
         middle = u'\u2567'.join(3*UNI_DOUB_HORI)
         print UNI_DOUB_ELB_NE + u'\u2569'.join(3*[middle]) + UNI_DOUB_ELB_NW
     
-    def check_subsquare(s, board, number):
-        test_list = []
-        for i in range(3):
-            for j in range(3):
-                test_list.append(board[i + (number/3)*3][j + (number%3)*3])
-        return check_for_duplicates(test_list)
-    
-    # Generating a VHARD sudoku w/ seed=4 takes 8.0 seconds
-    def check_subsquare2(s, board, i, j):
-        subsquare = [board[ii + (i/3)*3][jj + (j/3)*3] for ii in range(3) for jj in range(3)]
-        return check_for_duplicates2(subsquare, board[i][j])
-    
-    def solve(s, init, cur, is_fixed, i, j):
-        #if check_for_duplicates(cur[i]) or \
-        # check_for_duplicates([cur[k][j] for k in range(9)]) or \
-        # s.check_subsquare(cur, i/3*3 + j/3):
-        #    return
-        if check_for_duplicates2(cur[i], cur[i][j]) or \
-         check_for_duplicates2([cur[k][j] for k in range(9)], cur[i][j]) or \
-         s.check_subsquare2(cur, i, j):
-            return
-        
+    def solve(s, init, cur, nums_available, is_fixed, i, j):
         if i == len(cur)-1 and j == len(cur[-1])-1:
             return cur
         
         j += 1
         i += j / 9
-        j %= 9
+        j %= 9        
+        subsq_num = i/3*3 + j/3
         
-        for k in range((9 if is_fixed[i][j] else 1), 10):           
-            cur[i][j] = (init[i][j] + k) % 9
-            result = s.solve(init, cur, is_fixed, i, j)
-            if result != None:
-                return result
-        if not is_fixed[i][j]:
+        if is_fixed[i][j]:
+            return s.solve(init, cur, nums_available, is_fixed, i, j)
+        
+        else:
+            for k in range(1, 10):           
+                cand_val = (init[i][j] + k) % 9 
+                
+                if not (nums_available['rows'][i][cand_val] and \
+                        nums_available['cols'][j][cand_val] and \
+                        nums_available['subs'][subsq_num][cand_val]):
+                    continue
+                
+                cur[i][j] = cand_val
+                
+                nums_available['rows'][i][cand_val] = False
+                nums_available['cols'][j][cand_val] = False
+                nums_available['subs'][subsq_num][cand_val] = False
+                
+                result = s.solve(init, cur, nums_available, is_fixed, i, j)
+                if result != None:
+                    return result
+                
+                nums_available['rows'][i][cand_val] = True
+                nums_available['cols'][j][cand_val] = True
+                nums_available['subs'][subsq_num][cand_val] = True
+            
             cur[i][j] = None
     
     def get_solved_board(s):
@@ -159,7 +159,11 @@ class Sudoku(Puzzle):
         init = [[random_.choice(range(9)) for i in range(9)] for j in range(9)]
         cur = [[None] * 9 for i in range(9)]
         is_fixed = [[False] * 9 for i in range(9)]
-        return s.solve(init, cur, is_fixed, 0, -1)
+        nums_available = {}
+        nums_available['rows'] = [9*[True] for i in range(9)]
+        nums_available['cols'] = [9*[True] for i in range(9)]
+        nums_available['subs'] = [9*[True] for i in range(9)]
+        return s.solve(init, cur, nums_available, is_fixed, 0, -1)
     
     def get_puzzle(s, difficulty, seed=None):
         global SUDOKU_DEBUG
@@ -201,7 +205,19 @@ class Sudoku(Puzzle):
                     i += 1
             
             cur = [i[:] for i in seeds]
-            got_sudoku = (solution == s.solve(solution, cur, is_fixed, 0, -1))
+            
+            nums_available = {}
+            nums_available['rows'] = [9*[True] for i in range(9)]
+            nums_available['cols'] = [9*[True] for i in range(9)]
+            nums_available['subs'] = [9*[True] for i in range(9)]
+            for i in range(9):
+                for j in range(9):
+                    if cur[i][j] != None:
+                        nums_available['rows'][i][cur[i][j]] = False
+                        nums_available['cols'][j][cur[i][j]] = False
+                        nums_available['subs'][i/3*3 + j/3][cur[i][j]] = False
+
+            got_sudoku = (solution == s.solve(solution, cur, nums_available, is_fixed, 0, -1))
         
         if s.seed != None:
             print '%.3f' % (time.time() - start_time)
